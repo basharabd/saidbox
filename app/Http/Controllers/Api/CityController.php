@@ -34,7 +34,6 @@ class CityController extends Controller
     {
         $request->validate([
             'name'=>'required|unique:cities',
-            'rang'=>'nullable',
         ]);
         try {
             DB::beginTransaction();

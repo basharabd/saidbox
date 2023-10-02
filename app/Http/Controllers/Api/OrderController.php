@@ -142,23 +142,25 @@ class OrderController extends Controller
             'size_id' => 'required|numeric|exists:sizes,id',
             'address' => 'required|string',
             'order_price' => 'required|numeric',
-            'delivery_fees' => 'required',
+
             'order_note' => 'nullable|string',
             'captain_id' => 'required|numeric|exists:captains,id',
             'branch_id' => 'required|numeric|exists:branches,id',
             'store_id' => 'required|numeric|exists:stores,id',
             'package'=>'required|numeric',
-            'admin_collect' => 'required|numeric',
-            'store_collect' => 'required|numeric',
-            'delivery_collect' => 'required|numeric',
+            'admin_commission' => 'required|numeric',
+            'store_commission' => 'required|numeric',
+            'captain_commission' => 'required|numeric',
             'order_type' => 'required|string',
+            'number'=>'unique:orders,number',
+            'delivery_fees' => 'required',
         ]);
 
         try {
             DB::beginTransaction();
 
             // Calculate fees and total
-            $fees = $request->delivery_fees;
+            $fees = $request->delivery_fees; //store , admin , captain
             $city_id = $request->city_id;
             $range = Rang::where('id', $city_id)->first();
             $rang_price = $range->price;
@@ -194,13 +196,12 @@ class OrderController extends Controller
                 'order_note' => $request->order_note,
                 'request_order' => $request->request_order,
                 'order_status_id' => OrderStatus::where('name', 'pending')->value('id'),
-             //   'delivery_time' => $request->delivery_time,
             ]);
+
 
             // Create the order detail
             $orderDetail = OrderTransaction::create([
                 'order_id' => $order->id,
-
                 'order_price' =>   intval($request->order_price),
                 'admin_collect' =>  intval($request->admin_collect),
                 'store_collect' =>  intval($request->store_collect),
@@ -214,7 +215,7 @@ class OrderController extends Controller
             $store = Store::find($order->store_id);
             $tokens = $store->deviceTokens->pluck('token');
 
-            $store->notify(new NewOrderNotification($order));
+          //  $store->notify(new NewOrderNotification($order));
             // Get all the order status names
             $orderStatuses = OrderStatus::pluck('name');
 
@@ -379,7 +380,10 @@ class OrderController extends Controller
     }
 
 
+   public function show(Order $order)
+   {
 
+   }
 
 
 

@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 
-class Admin extends Model
+class Admin extends User
 {
     use HasFactory , HasApiTokens , Notifiable ;
 
@@ -39,6 +40,11 @@ class Admin extends Model
     public function deviceTokens()
     {
         return $this->hasMany(DeviceToken::class, 'admin_id');
+    }
+
+    public function routeNotificationForFcm($notification = null)
+    {
+        return $this->deviceTokens()->pluck('token')->toArray();
     }
 
 

@@ -35,7 +35,7 @@ class customSms {
         $message = $notification->toSms($notifiable);
 
           $response =  Http::baseUrl('http://www.tweetsms.ps')
-             
+
               ->get('api.php',[
                 'comm'=>'sendsms',
                 'user'=>$config['user'],

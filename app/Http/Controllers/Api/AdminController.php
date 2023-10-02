@@ -7,11 +7,15 @@ use App\Http\Services\GatewaySms;
 use App\Models\Admin;
 use App\Models\Branch;
 use App\Models\Captain;
+use App\Models\DeviceToken;
 use App\Models\Store;
 use App\Models\VerificationCode;
+use App\Notifications\AdminNotificationFcm;
+use App\Notifications\CaptainNotificationFcm;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 
@@ -42,7 +46,7 @@ class AdminController extends Controller
             $code = mt_rand(10000, 99999);
             VerificationCode::create([
                 'phone' => $phone,
-                'code' => $code,
+                'code' =>'11111',// $code,
             ]);
             return response()->json([
                 'status' => true,
@@ -57,9 +61,53 @@ class AdminController extends Controller
         }
     }
 
-    public function signup (Request $request)
+//    public function signup (Request $request)
+//    {
+//        $request->validate([
+//            'admin_name' => 'required|string|max:255',
+//            'mobile_number' => 'required|string|max:10|unique:admins,mobile_number',
+//            'date_of_birth' => 'required|date',
+//            'id_number' => 'required|string|max:255',
+//            'address' => 'required|string',
+//            'description' => 'nullable|string',
+//            'status' => 'integer',
+//            'city_id' => 'required|exists:cities,id',
+//        ]);
+//
+//        try {
+//            DB::beginTransaction();
+//            $mob = $request->mobile_number;
+//            $admin = new Admin($request->all());
+//            $admin->save();
+//            $user_secret = new VerificationCode([
+//                'phone'=>$request->mobile_number,
+//                'code'=> '11111',//mt_rand(10000, 99999),
+//            ]);
+//
+//            $admin->verificationCodes()->save($user_secret);
+//
+//            DB::commit();
+//
+//            return response()->json([
+//                'status'=>true,
+//                'message' => 'Admin Created successfully',
+//                'code' => 'Send Code successfully',
+//
+//            ] , 201);
+//        } catch (\Exception $e) {
+//            DB::rollBack();
+//            // Handle the exception
+//            return response()->json([
+//                'status' => false,
+//                'error' => 'An error occurred while creating admin',
+//                'message' => $e->getMessage(),
+//            ], 500);
+//        }
+//    }
+    public function signup(Request $request)
     {
-        $request->validate([
+
+        $validator = Validator::make($request->all(), [
             'admin_name' => 'required|string|max:255',
             'mobile_number' => 'required|string|max:10|unique:admins,mobile_number',
             'date_of_birth' => 'required|date',
@@ -68,38 +116,57 @@ class AdminController extends Controller
             'description' => 'nullable|string',
             'status' => 'integer',
             'city_id' => 'required|exists:cities,id',
+            'token'=>'required',
         ]);
+
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'errors' => $validator->errors(),
+            ], 400);
+        }
 
         try {
             DB::beginTransaction();
-            $mob = $request->mobile_number;
-            $admin = new Admin($request->all());
-            $admin->save();
-            $user_secret = new VerificationCode([
-                'phone'=>$request->mobile_number,
-                'code'=> mt_rand(10000, 99999),
+
+            // Create a new Captain instance
+            $admin = Admin::create($request->except('token'));
+            // Create a new device token
+            $deviceToken = new DeviceToken([
+                'token' => $request->input('token'),
+                'device' => '@',
+            ]);
+            $admin->deviceTokens()->save($deviceToken);
+
+            // Save the Captain and related verification code
+            $userSecret = new VerificationCode([
+                'phone' => $request->input('mobile_number'),
+                'code' => '11111'//mt_rand(10000, 99999),
             ]);
 
-            $admin->verificationCodes()->save($user_secret);
+            $admin->verificationCodes()->save($userSecret);
+
+            $notification = $admin->notify(new AdminNotificationFcm($admin));
+
 
             DB::commit();
 
             return response()->json([
-                'status'=>true,
-                'message' => 'Admin Created successfully',
-                'code' => 'Send Code successfully',
-
-            ] , 201);
+                'status' => true,
+                'message' => 'Admin created successfully',
+                'code' => 'Verification code sent successfully',
+                'notification'=>'Send Notification successfully',
+            ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            // Handle the exception
             return response()->json([
                 'status' => false,
-                'error' => 'An error occurred while creating admin',
-                'message' => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
+
 
     public function verify(Request $request)
     {
@@ -160,7 +227,7 @@ class AdminController extends Controller
 
             ['phone'=>$request->mobile_number],
 
-            ['code' => rand(10000, 99999)],
+            ['code' =>'11111',]// rand(10000, 99999)],
         );
 
         return response()->json([

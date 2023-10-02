@@ -93,13 +93,13 @@ Route::middleware('auth:store')->group(function () {
     Route::post('/store/logout', [StoreController::class, 'logout']);
     //Orders
 
-    Route::get('getOrders' , [OrderController::class , 'getOrders']);
-    Route::post('storeOrder', [OrderController::class,'storeOrder']);
-    Route::post('/orders/cancel', [OrderController::class,'canceledOrder']);
-    Route::get('order/{orderId}', [OrderController::class, 'getOrder']);
-    Route::put('/orders/{order}', [OrderController::class, 'updateOrderStatus']);
-
 });
+
+Route::get('getOrders' , [OrderController::class , 'getOrders']);
+Route::post('storeOrder', [OrderController::class,'storeOrder']);
+Route::post('/orders/cancel', [OrderController::class,'canceledOrder']);
+Route::get('order/{orderId}', [OrderController::class, 'getOrder']);
+Route::put('/orders/{order}', [OrderController::class, 'updateOrderStatus']);
 
 Route::middleware('auth:admin')->group(function () {
     //Admins
@@ -165,5 +165,5 @@ Route::get('/order-status/tracking', [OrderStatusController::class, 'getOrderTra
 Route::get('getOrderstatus' , [OrderStatusController::class , 'getOrderTrackingStatus']);
 
 
-
-
+Route::put('delivery-man-locations/{deliveryManLocation}' , [\App\Http\Controllers\Api\DeliveryManLocationsController::class , 'update']);
+Route::get('delivery-man-locations/{deliveryManLocation}' , [\App\Http\Controllers\Api\DeliveryManLocationsController::class , 'show']);

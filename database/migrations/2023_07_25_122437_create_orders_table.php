@@ -12,21 +12,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('orders', function (Blueprint $table) {
-          //  $table->id();
-            $table->bigIncrements('id')->unique();
+            $table->id();
+         //   $table->bigIncrements('id')->unique();
             $table->foreignId('store_id')->constrained('stores' , 'id')->cascadeOnDelete();
             $table->foreignId('city_id')->constrained('cities', 'id')->cascadeOnDelete();
             $table->foreignId('size_id')->constrained('sizes', 'id')->cascadeOnDelete();
             $table->foreignId('captain_id')->constrained('captains', 'id')->cascadeOnDelete();
             $table->foreignId('branch_id')->constrained('branches' , 'id')->cascadeOnDelete();
-            $table->foreignId('reason_id')->nullable()->constrained('reasons' , 'id')->onDelete('cascade');
+            $table->foreignId('reason_id')->nullable()->constrained('reasons' , 'id')->nullOnDelete();
             $table->foreignId('order_status_id')->nullable()->constrained('order_statuses' , 'id')->onDelete('cascade');
             $table->string('name');
             $table->string('mobile_number');
             $table->text('address');
             $table->string('order_type')->default('parcel');
             $table->text('order_note')->nullable();
-            $table->date('request_order');
+            $table->string('number')->unique();
             $table->timestamps();
         });
       }

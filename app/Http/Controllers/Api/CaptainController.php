@@ -6,10 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Http\Services\GatewaySms;
 use App\Models\Admin;
 use App\Models\Captain;
+use App\Models\DeviceToken;
+use App\Models\Store;
 use App\Models\VerificationCode;
+use App\Notifications\CaptainNotificationFcm;
+use App\Notifications\StoreNotificationFcm;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 
@@ -39,7 +44,7 @@ class CaptainController extends Controller
             $code = mt_rand(10000, 99999);
             VerificationCode::create([
                 'phone' => $phone,
-                'code' => $code,
+                'code' =>'11111',// $code,
             ]);
             return response()->json([
                 'status'=>true,
@@ -53,10 +58,10 @@ class CaptainController extends Controller
             ],404);
         }
     }
-
-    public function signup (Request $request)
+    public function signup(Request $request)
     {
-        $request->validate([
+
+        $validator = Validator::make($request->all(), [
             'captain_name' => 'required|string|max:255',
             'mobile_number' => 'required|string|max:10|unique:captains,mobile_number',
             'date_of_birth' => 'required|date',
@@ -65,38 +70,57 @@ class CaptainController extends Controller
             'description' => 'nullable|string',
             'status' => 'integer',
             'city_id' => 'required|exists:cities,id',
+            'token'=>'required',
         ]);
+
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'errors' => $validator->errors(),
+            ], 400);
+        }
 
         try {
             DB::beginTransaction();
-            $mob = $request->mobile_number;
-            $captain = new Captain($request->all());
-            $captain->save();
-            $user_secret = new VerificationCode([
-                'phone'=>$request->mobile_number,
-                'code'=> mt_rand(10000, 99999),
+
+            // Create a new Captain instance
+            $captain = Captain::create($request->except('token'));
+            // Create a new device token
+            $deviceToken = new DeviceToken([
+                'token' => $request->input('token'),
+                'device' => '@',
+            ]);
+            $captain->deviceTokens()->save($deviceToken);
+
+            // Save the Captain and related verification code
+            $userSecret = new VerificationCode([
+                'phone' => $request->input('mobile_number'),
+                'code' => '11111'//mt_rand(10000, 99999),
             ]);
 
-            $captain->verificationCodes()->save($user_secret);
+            $captain->verificationCodes()->save($userSecret);
+
+            $notification = $captain->notify(new CaptainNotificationFcm($captain));
+
 
             DB::commit();
 
             return response()->json([
-                'status'=>true,
-                'message' => 'Captain Created successfully',
-                'code' => 'Send Code successfully',
-            ],201);
+                'status' => true,
+                'message' => 'Captain created successfully',
+                'code' => 'Verification code sent successfully',
+                'notification'=>'Send Notification successfully',
+            ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            // Handle the exception
-            return response()->json(
-                [
-                    'status' => false,
-                    'error' => $e->getMessage()
-                ]
-                , 500);
+            return response()->json([
+                'status' => false,
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
+
 
     public function verify(Request $request)
     {
@@ -158,7 +182,7 @@ class CaptainController extends Controller
 
                 ['phone'=>$request->mobile_number],
 
-                ['code' => rand(10000, 99999)],
+                ['code' =>'11111'],// rand(10000, 99999)],
             );
 
             return response()->json([

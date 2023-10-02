@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('order_transactions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('order_id')->constrained('orders', 'id')->cascadeOnDelete();
-            $table->decimal('admin_collect' , 8 , 2);
-            $table->decimal('store_collect' , 8 , 2);
-            $table->decimal('delivery_collect' , 8 , 2);
+            $table->decimal('admin_commission' , 8 , 2);
+            $table->decimal('store_commission' , 8 , 2);
+            $table->decimal('delivery_commission' , 8 , 2);
             $table->decimal('order_price', 8, 2);
             $table->integer('package')->default(1);
             $table->enum('delivery_fees',['store' , 'admin' , 'customer'])->default('store');

@@ -22,6 +22,7 @@ class ReasonController extends Controller
 
     public function store(Request $request)
     {
+        
         $request->validate([
             'reason' => 'required|string|max:255|unique:reasons',
         ]);

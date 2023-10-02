@@ -4,16 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 
-class Store extends Model
+class Store extends User
 {
     use HasFactory , HasApiTokens , Notifiable;
-
-
-
 
     protected $guarded = [];
 
@@ -47,6 +45,11 @@ class Store extends Model
         return $this->belongsTo(City::class);
     }
 
+    public function deviceTokens()
+    {
+        return $this->hasMany(DeviceToken::class , 'store_id');
+    }
+
 
     public function routeNotificationForSms($notification = null)
     {
@@ -54,10 +57,22 @@ class Store extends Model
 
     }
 
-    public function deviceTokens()
+    public function routeNotificationForFcm($notification = null)
     {
-        return $this->hasMany(DeviceToken::class, 'store_id');
+        return $this->deviceTokens()->pluck('token')->toArray();
     }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -8,21 +8,24 @@ use Illuminate\Database\Eloquent\Model;
 class DeviceToken extends Model
 {
     use HasFactory;
-    protected $fillable = ['store_id', 'admin_id', 'captains_id', 'token', 'device'];
+
+    protected $fillable = ['store_id', 'admin_id', 'captain_id', 'token', 'device'];
 
     public function store()
     {
-        return $this->belongsTo(Store::class);
+        return $this->belongsTo(Store::class,'store_id');
     }
 
     public function admin()
     {
-        return $this->belongsTo(Admin::class);
+        return $this->belongsTo(Admin::class,'admin_id');
     }
 
     public function captain()
     {
-        return $this->belongsTo(Captain::class);
+        return $this->belongsTo(Captain::class,'captain_id');
     }
+
+
 
 }

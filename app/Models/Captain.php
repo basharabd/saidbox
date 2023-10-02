@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 
-class Captain extends Model
+class Captain extends User
 {
     use HasFactory , HasApiTokens , Notifiable;
     protected $guarded = [];
@@ -35,9 +36,14 @@ class Captain extends Model
 
     public function deviceTokens()
     {
-        return $this->hasMany(DeviceToken::class, 'captains_id');
+        return $this->hasMany(DeviceToken::class);
     }
 
+
+    public function routeNotificationForFcm($notification = null)
+    {
+        return $this->deviceTokens()->pluck('token')->toArray();
+    }
 
     public function routeNotificationForSms($notification = null)
     {
@@ -45,10 +51,7 @@ class Captain extends Model
 
     }
 
-    public function routeNotificationForFcm($notification = null)
-    {
-        return $this->deviceTokens()->pluck('token')->toArray();
-    }
+
 
 
 }

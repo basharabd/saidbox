@@ -15,9 +15,9 @@ class CreateDeviceTokensTable extends Migration
     {
         Schema::create('device_tokens', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('store_id')->constrained('stores' ,'id')->cascadeOnDelete();
-            $table->foreignId('admin_id')->constrained('admins' ,'id')->cascadeOnDelete();
-            $table->foreignId('captains_id')->constrained('captains' ,'id')->cascadeOnDelete();
+            $table->foreignId('store_id')->nullable()->constrained('stores' ,'id')->nullOnDelete();
+            $table->foreignId('admin_id')->nullable()->constrained('admins' ,'id')->nullOnDelete();
+            $table->foreignId('captain_id')->nullable()->constrained('captains' ,'id')->nullOnDelete();
             $table->string('token');
             $table->string('device');
             $table->timestamps();

@@ -4,15 +4,21 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 
+use App\Models\DeviceToken;
 use App\Models\Order;
 use App\Models\Store;
 use App\Models\VerificationCode;
+use App\Notifications\StoreFcmnotification;
+use App\Notifications\StoreNotificationFcm;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use App\Notifications\RegisterNotification;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Notification;
+
 
 
 class StoreController extends Controller
@@ -38,7 +44,7 @@ class StoreController extends Controller
                 $code = mt_rand(10000, 99999);
                 VerificationCode::create([
                     'phone' => $phone,
-                    'code' => $code,
+                    'code' => '11111',//$code,
                 ]);
                 return response()->json([
                     'status' => true,
@@ -54,9 +60,78 @@ class StoreController extends Controller
     }
 
 
+//    public function signup(Request $request)
+//    {
+//        $request->validate([
+//            'store_type_id' => 'required|exists:store_types,id',
+//            'branch_id' => 'required|exists:branches,id',
+//            'city_id' => 'required|exists:cities,id',
+//            'store_name' => 'required|string|max:255',
+//            'owner_name' => 'required|string|max:255',
+//            'description' => 'nullable|string',
+//            'status' => 'integer|in:0,1',
+//            'mobile_number' => 'required|string|max:10|unique:stores,mobile_number',
+//            'image' => 'nullable|image', // Add image validation rules
+//            'token' => 'required', // Add image validation rules
+//        ]);
+//
+//        try {
+//            DB::beginTransaction();
+//
+//            // Create a new store instance
+////            $store = new Store($request->except('token'));
+//            $store  = Store::create($request->except('token'));
+////            dd($store);
+//
+//            $token = new DeviceToken();
+//            $token->store_id = $store->id;
+//            $token->token = $request['token'];
+//            $token->device = '@';
+//            $token->save();
+//
+//             $store->notify(new StoreFcmnotification($store));
+//
+//            // Set the default image if no image is uploaded
+//            if (!$request->hasFile('image')) {
+//                // Assuming 'default-store-image.png' is located in the public/images directory
+//                $defaultImagePath = 'images/default-store-image.png';
+//                $store->image = $defaultImagePath;
+//            } else {
+//                // Handle image upload if a file is provided
+//                $image = $request->file('image');
+//                $path = $image->store('store_images', 'public');
+//                $store->image = $path;
+//            }
+//
+//            // Save the store and related verification code
+//            $user_secret = new VerificationCode([
+//                'phone' => $request->mobile_number,
+//                'code' => mt_rand(10000, 99999),
+//            ]);
+//            $store->verificationCodes()->save($user_secret);
+//           // $store->notify(new RegisterNotification());
+//
+//            DB::commit();
+//
+//            return response()->json([
+//                'status'=>true,
+//                'message' => 'Store Created successfully',
+//                'code' => 'Send Code successfully',
+//            ],201);
+//        } catch (\Exception $e) {
+//            DB::rollBack();
+//            // Handle the exception
+//            return response()->json([
+//                'status' => false,
+//                'error' => $e->getMessage()]
+//                , 500);
+//        }
+//    }
+
     public function signup(Request $request)
     {
-        $request->validate([
+
+        $validator = Validator::make($request->all(), [
             'store_type_id' => 'required|exists:store_types,id',
             'branch_id' => 'required|exists:branches,id',
             'city_id' => 'required|exists:cities,id',
@@ -65,14 +140,29 @@ class StoreController extends Controller
             'description' => 'nullable|string',
             'status' => 'integer|in:0,1',
             'mobile_number' => 'required|string|max:10|unique:stores,mobile_number',
-            'image' => 'nullable|image', // Add image validation rules
+            'image' => 'nullable|image',
+            'token' => 'required',
         ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'errors' => $validator->errors(),
+            ], 400);
+        }
 
         try {
             DB::beginTransaction();
 
             // Create a new store instance
-            $store = new Store($request->all());
+            $store = Store::create($request->except('token'));
+
+            // Create a new device token
+            $deviceToken = new DeviceToken([
+                'token' => $request->input('token'),
+                'device' => '@',
+            ]);
+            $store->deviceTokens()->save($deviceToken);
 
             // Set the default image if no image is uploaded
             if (!$request->hasFile('image')) {
@@ -87,28 +177,30 @@ class StoreController extends Controller
             }
 
             // Save the store and related verification code
-            $store->save();
-            $user_secret = new VerificationCode([
-                'phone' => $request->mobile_number,
-                'code' => mt_rand(10000, 99999),
+            $userSecret = new VerificationCode([
+                'phone' => $request->input('mobile_number'),
+                'code' => '11111'//mt_rand(10000, 99999),
             ]);
-            $store->verificationCodes()->save($user_secret);
-            $store->notify(new RegisterNotification());
+            $store->verificationCodes()->save($userSecret);
+
+           $notification = $store->notify(new StoreNotificationFcm($store));
+
+
 
             DB::commit();
 
             return response()->json([
-                'status'=>true,
-                'message' => 'Store Created successfully',
-                'code' => 'Send Code successfully',
-            ],201);
+                'status' => true,
+                'message' => 'Store created successfully',
+                'code' => 'Verification code sent successfully',
+                'notification'=>'Send Notification successfully',
+            ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            // Handle the exception
             return response()->json([
                 'status' => false,
-                'error' => $e->getMessage()]
-                , 500);
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
 
@@ -172,7 +264,7 @@ class StoreController extends Controller
 
                 ['phone'=>$request->mobile_number],
 
-                ['code' => rand(10000, 99999)],
+                ['code' =>'11111'],// rand(10000, 99999)],
             );
 
             return response()->json([
@@ -255,7 +347,7 @@ class StoreController extends Controller
                 // Create and save the new verification code
                 $verificationCode = new VerificationCode([
                     'phone' => $request->mobile_number,
-                    'code' => $code,
+                    'code' =>'11111',// $code,
                 ]);
                 $store->verificationCodes()->save($verificationCode);
             }
